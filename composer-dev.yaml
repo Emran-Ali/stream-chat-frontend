@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  vue-dev:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
