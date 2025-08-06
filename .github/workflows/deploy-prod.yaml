@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # Overall job timeout
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -15,7 +15,7 @@ jobs:
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.5
-        timeout-minutes: 25  # Step timeout
+        timeout-minutes: 25
         env:
           VITE_STREAM_API_KEY: ${{secrets.VITE_STREAM_API_KEY}}
           VITE_PORT: ${{secrets.VITE_PORT}}
@@ -26,7 +26,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           envs: VITE_STREAM_API_KEY,VITE_PORT,BASE_URL,VITE_BACKEND_URL
-          command_timeout: 20m  # SSH command timeout
+          command_timeout: 20m  # Important: SSH command timeout
           script: |
             set -e
             cd /home/ubuntu/vue-chat-app
@@ -34,16 +34,11 @@ jobs:
             echo "VITE_BACKEND_URL received: ${VITE_BACKEND_URL}"
             echo "VITE_PORT received: ${VITE_PORT}"
             
-            # Pull latest code
             git pull origin dev
-
-            # Stop existing containers
             docker compose -f compose.prod.yaml down || true
-
-            # Remove any existing .env file
             rm -f .env
 
-            # Create .env file for build time variables
+            # Create .env file
             echo "VITE_STREAM_API_KEY=${VITE_STREAM_API_KEY}" > .env
             echo "VITE_PORT=${VITE_PORT}" >> .env
             echo "BASE_URL=${BASE_URL}" >> .env
@@ -52,18 +47,15 @@ jobs:
             echo "Environment file created:"
             sed 's/=.*/=***/' .env
 
-            # Clean up
+            # Clean up and build with progress output
             docker system prune -f
-
-            # Build with progress and timeout
+            
             echo "=== Starting Docker Build ==="
-            DOCKER_BUILDKIT=1 timeout 900 docker compose -f compose.prod.yaml build --no-cache --progress=plain
+            DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build --no-cache --progress=plain
 
-            # Start services
             echo "=== Starting Services ==="
             docker compose -f compose.prod.yaml up -d
 
-            # Wait for services to start
             sleep 20
 
             echo "=== Container Status ==="
@@ -75,5 +67,8 @@ jobs:
             echo "=== Testing nginx ==="
             docker exec vue-chat-app nginx -t || echo "Nginx config test failed"
 
-            # Clean up .env file for security  
+            # Test HTTP response
+            echo "=== Testing HTTP Response ==="
+            curl -I http://localhost || echo "HTTP test failed"
+
             rm -f .env

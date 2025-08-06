@@ -7,10 +7,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies with timeout and no optional deps
+# Install dependencies with optimizations
 RUN npm ci --omit=dev --omit=optional --no-audit --no-fund --silent
 
 # Copy source code
@@ -19,8 +19,11 @@ COPY . .
 # Copy environment variables
 COPY .env .env
 
-# Build with timeout (10 minutes max)
-RUN timeout 600 npm run build || exit 1
+# Build with explicit production mode and timeout
+RUN timeout 600 npm run build -- --mode production || exit 1
+
+# Verify build output
+RUN ls -la dist/ || exit 1
 
 # Production stage
 FROM nginx:alpine AS production-stage
@@ -30,6 +33,12 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Create nginx cache directory
+RUN mkdir -p /var/cache/nginx
+
+# Test nginx configuration
+RUN nginx -t
 
 # Expose port 80
 EXPOSE 80

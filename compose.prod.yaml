@@ -6,7 +6,7 @@ services:
     container_name: vue-chat-app
     restart: unless-stopped
     ports:
-      - '80:80'
+      - '80:80'  # Keep this as you want
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

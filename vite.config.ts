@@ -13,10 +13,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vueJsx(),
-      // IMPORTANT: Only enable devtools in development
+      // CRITICAL: Disable devtools in production
       !isProduction && vueDevTools(),
       tailwindcss(),
-    ].filter(Boolean), // Remove falsy plugins
+    ].filter(Boolean),
 
     server: {
       host: true,
@@ -28,34 +28,21 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['localhost', '13.215.158.152'],
     },
 
-    // Base URL from environment
     base: process.env.BASE_URL || '/',
 
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      // Disable source maps in production for faster build
-      sourcemap: false,
-      // Optimize build performance
+      sourcemap: false, // Disable for faster build
+      minify: 'terser',
       rollupOptions: {
         output: {
-          // Split chunks for better caching
           manualChunks: {
             vendor: ['vue'],
-            router: ['vue-router'],
           },
         },
       },
-      // Increase chunk size warning limit
       chunkSizeWarningLimit: 1000,
-      // Enable minification
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
     },
 
     resolve: {
@@ -64,10 +51,8 @@ export default defineConfig(({ mode }) => {
       },
     },
 
-    // Define environment variables
     define: {
       __VUE_PROD_DEVTOOLS__: false,
-      __VUE_OPTIONS_API__: true,
     },
   }
 })
