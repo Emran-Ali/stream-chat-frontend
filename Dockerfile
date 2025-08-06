@@ -1,17 +1,24 @@
-# Build stage
-FROM node:22-alpine AS build-stage
+# Build stage - Use debian instead of alpine
+FROM node:22-slim AS build-stage
 
 WORKDIR /app
 
-# Set environment variables for optimization
+# Install build dependencies for debian
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy package files first for better caching
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies with optimizations
-RUN npm ci --omit=dev --omit=optional --no-audit --no-fund --silent
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -19,13 +26,13 @@ COPY . .
 # Copy environment variables
 COPY .env .env
 
-# Build with explicit production mode and timeout
-RUN timeout 600 npm run build -- --mode production || exit 1
+# Build the application
+RUN npm run build
 
 # Verify build output
 RUN ls -la dist/ || exit 1
 
-# Production stage
+# Production stage - Keep nginx alpine for smaller size
 FROM nginx:alpine AS production-stage
 
 # Copy built assets from build stage
@@ -33,9 +40,6 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
-
-# Create nginx cache directory
-RUN mkdir -p /var/cache/nginx
 
 # Test nginx configuration
 RUN nginx -t
