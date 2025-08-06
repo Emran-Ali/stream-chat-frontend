@@ -3,11 +3,15 @@ FROM node:22-alpine AS build-stage
 
 WORKDIR /app
 
+# Set environment variables for optimization
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with timeout and no optional deps
+RUN npm ci --omit=dev --omit=optional --no-audit --no-fund --silent
 
 # Copy source code
 COPY . .
@@ -15,8 +19,8 @@ COPY . .
 # Copy environment variables
 COPY .env .env
 
-# Build the app
-RUN npm run build
+# Build with timeout (10 minutes max)
+RUN timeout 600 npm run build || exit 1
 
 # Production stage
 FROM nginx:alpine AS production-stage

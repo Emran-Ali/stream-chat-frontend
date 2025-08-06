@@ -6,35 +6,68 @@ import { defineConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue(), vueJsx(), vueDevTools(), tailwindcss()],
+export default defineConfig(({ mode }) => {
+  const isProduction = mode === 'production'
 
-  server: {
-    host: true,
-    watch: {
-      usePolling: true,
+  return {
+    plugins: [
+      vue(),
+      vueJsx(),
+      // IMPORTANT: Only enable devtools in development
+      !isProduction && vueDevTools(),
+      tailwindcss(),
+    ].filter(Boolean), // Remove falsy plugins
+
+    server: {
+      host: true,
+      watch: {
+        usePolling: true,
+      },
+      port: 3000,
+      strictPort: true,
+      allowedHosts: ['localhost', '13.215.158.152'],
     },
-    port: 3000,
-    strictPort: true,
-    allowedHosts: [
-      'localhost',
-      'pride-operations-ls-obj.trycloudflare.com',
-      '.trycloudflare.com',
-      '13.215.158.152', // Add your EC2 IP
-    ],
-  },
 
-  // Add these for production deployment
-  base: process.env.BASE_URL || '/',
+    // Base URL from environment
+    base: process.env.BASE_URL || '/',
 
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-  },
-
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      // Disable source maps in production for faster build
+      sourcemap: false,
+      // Optimize build performance
+      rollupOptions: {
+        output: {
+          // Split chunks for better caching
+          manualChunks: {
+            vendor: ['vue'],
+            router: ['vue-router'],
+          },
+        },
+      },
+      // Increase chunk size warning limit
+      chunkSizeWarningLimit: 1000,
+      // Enable minification
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
     },
-  },
+
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+
+    // Define environment variables
+    define: {
+      __VUE_PROD_DEVTOOLS__: false,
+      __VUE_OPTIONS_API__: true,
+    },
+  }
 })

@@ -7,6 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Overall job timeout
 
     steps:
       - name: Checkout code
@@ -14,6 +15,7 @@ jobs:
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.5
+        timeout-minutes: 25  # Step timeout
         env:
           VITE_STREAM_API_KEY: ${{secrets.VITE_STREAM_API_KEY}}
           VITE_PORT: ${{secrets.VITE_PORT}}
@@ -24,6 +26,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           envs: VITE_STREAM_API_KEY,VITE_PORT,BASE_URL,VITE_BACKEND_URL
+          command_timeout: 20m  # SSH command timeout
           script: |
             set -e
             cd /home/ubuntu/vue-chat-app
@@ -46,15 +49,18 @@ jobs:
             echo "BASE_URL=${BASE_URL}" >> .env
             echo "VITE_BACKEND_URL=${VITE_BACKEND_URL}" >> .env
 
-            # Debug: Show environment variables (hide sensitive values)
             echo "Environment file created:"
             sed 's/=.*/=***/' .env
 
-            # Clean up and rebuild
+            # Clean up
             docker system prune -f
-            docker compose -f compose.prod.yaml build --no-cache
+
+            # Build with progress and timeout
+            echo "=== Starting Docker Build ==="
+            DOCKER_BUILDKIT=1 timeout 900 docker compose -f compose.prod.yaml build --no-cache --progress=plain
 
             # Start services
+            echo "=== Starting Services ==="
             docker compose -f compose.prod.yaml up -d
 
             # Wait for services to start
@@ -64,7 +70,7 @@ jobs:
             docker compose -f compose.prod.yaml ps
 
             echo "=== Container Logs ==="
-            docker compose -f compose.prod.yaml logs --tail=20
+            docker compose -f compose.prod.yaml logs --tail=30
 
             echo "=== Testing nginx ==="
             docker exec vue-chat-app nginx -t || echo "Nginx config test failed"
