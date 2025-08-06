@@ -1,51 +1,40 @@
-# Build stage - Use debian instead of alpine
+# Build stage
 FROM node:22-slim AS build-stage
 
 WORKDIR /app
 
-# Install build dependencies for debian
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including dev dependencies for build)
-RUN npm ci
+# Install dependencies (without setting NODE_ENV=production)
+RUN npm install
 
-# Copy source code
+# Copy source code and environment
 COPY . .
-
-# Copy environment variables
 COPY .env .env
 
 # Build the application
 RUN npm run build
 
-# Verify build output
-RUN ls -la dist/ || exit 1
-
-# Production stage - Keep nginx alpine for smaller size
+# Production stage
 FROM nginx:alpine AS production-stage
 
-# Copy built assets from build stage
+# Copy built assets
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
+# Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Test nginx configuration
+# Test nginx
 RUN nginx -t
 
-# Expose port 80
 EXPOSE 80
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
