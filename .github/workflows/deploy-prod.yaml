@@ -1,0 +1,73 @@
+name: Deploy Chat-App-frontend to EC2 with Docker
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.5
+        env:
+          VITE_STREAM_API_KEY: ${{secrets.VITE_STREAM_API_KEY}}
+          VITE_PORT: ${{secrets.VITE_PORT}}
+          BASE_URL: ${{secrets.BASE_URL}}
+          VITE_BACKEND_URL: ${{secrets.VITE_BACKEND_URL}}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          envs: VITE_STREAM_API_KEY,VITE_PORT,BASE_URL,VITE_BACKEND_URL
+          script: |
+            set -e
+            cd /home/ubuntu/vue-chat-app
+
+            echo "VITE_BACKEND_URL received: ${VITE_BACKEND_URL}"
+            echo "VITE_PORT received: ${VITE_PORT}"
+            
+            # Pull latest code
+            git pull origin dev
+
+            # Stop existing containers
+            docker compose -f compose.prod.yaml down || true
+
+            # Remove any existing .env file
+            rm -f .env
+
+            # Create .env file for build time variables
+            echo "VITE_STREAM_API_KEY=${VITE_STREAM_API_KEY}" > .env
+            echo "VITE_PORT=${VITE_PORT}" >> .env
+            echo "BASE_URL=${BASE_URL}" >> .env
+            echo "VITE_BACKEND_URL=${VITE_BACKEND_URL}" >> .env
+
+            # Debug: Show environment variables (hide sensitive values)
+            echo "Environment file created:"
+            sed 's/=.*/=***/' .env
+
+            # Clean up and rebuild
+            docker system prune -f
+            docker compose -f compose.prod.yaml build --no-cache
+
+            # Start services
+            docker compose -f compose.prod.yaml up -d
+
+            # Wait for services to start
+            sleep 20
+
+            echo "=== Container Status ==="
+            docker compose -f compose.prod.yaml ps
+
+            echo "=== Container Logs ==="
+            docker compose -f compose.prod.yaml logs --tail=20
+
+            echo "=== Testing nginx ==="
+            docker exec vue-chat-app nginx -t || echo "Nginx config test failed"
+
+            # Clean up .env file for security  
+            rm -f .env

@@ -1,0 +1,17 @@
+services:
+  vue-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vue-chat-app
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - frontend-network
+
+networks:
+  frontend-network:
+    driver: bridge
