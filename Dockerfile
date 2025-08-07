@@ -34,8 +34,8 @@ RUN echo "=== Environment Variables ===" && \
     echo "=== NPM Version ===" && \
     npm --version
 
-# Build with timeout and debugging
-RUN timeout 300 npm run build --verbose || exit 1
+# Build with timeout and debugging \
+RUN npm run build --verbose
 
 # Verify build
 RUN ls -la dist/ && echo "Build successful"
