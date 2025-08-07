@@ -4,12 +4,7 @@ FROM node:22-slim AS build-stage
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
 
 # Set Node options for memory
 ENV NODE_OPTIONS="--max-old-space-size=4096"
