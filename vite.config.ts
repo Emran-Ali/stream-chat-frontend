@@ -17,7 +17,7 @@ export default defineConfig(({ mode, command }) => {
       vueJsx(),
       // CRITICAL: Only load devtools in development
       ...(isProduction ? [] : [vueDevTools()]),
-      tailwindcss()
+      tailwindcss(),
     ],
 
     server: {
@@ -27,7 +27,7 @@ export default defineConfig(({ mode, command }) => {
       },
       port: 3000,
       strictPort: true,
-      allowedHosts: ['localhost', '13.215.158.152'],
+      allowedHosts: ['localhost', '54.255.150.176'],
     },
 
     base: process.env.BASE_URL || '/',
@@ -42,7 +42,7 @@ export default defineConfig(({ mode, command }) => {
       rollupOptions: {
         output: {
           manualChunks: undefined, // Let Vite handle chunking automatically
-        }
+        },
       },
       chunkSizeWarningLimit: 2000,
     },
@@ -61,7 +61,7 @@ export default defineConfig(({ mode, command }) => {
 
     define: {
       __VUE_PROD_DEVTOOLS__: false,
-      __VUE_OPTIONS_API__: true
-    }
+      __VUE_OPTIONS_API__: true,
+    },
   }
 })
