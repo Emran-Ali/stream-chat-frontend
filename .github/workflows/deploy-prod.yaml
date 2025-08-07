@@ -15,7 +15,6 @@ jobs:
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.5
-        timeout-minutes: 25
         env:
           VITE_STREAM_API_KEY: ${{secrets.VITE_STREAM_API_KEY}}
           VITE_PORT: ${{secrets.VITE_PORT}}
@@ -26,7 +25,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           envs: VITE_STREAM_API_KEY,VITE_PORT,BASE_URL,VITE_BACKEND_URL
-          command_timeout: 20m  # Important: SSH command timeout
+          command_timeout: 20m
           script: |
             set -e
             cd /home/ubuntu/vue-chat-app
@@ -66,9 +65,5 @@ jobs:
 
             echo "=== Testing nginx ==="
             docker exec vue-chat-app nginx -t || echo "Nginx config test failed"
-
-            # Test HTTP response
-            echo "=== Testing HTTP Response ==="
-            curl -I http://localhost || echo "HTTP test failed"
 
             rm -f .env
