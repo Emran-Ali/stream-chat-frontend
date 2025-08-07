@@ -53,17 +53,6 @@ jobs:
             DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build --no-cache --progress=plain
 
             echo "=== Starting Services ==="
-            docker compose -f compose.prod.yaml up -d
-
-            sleep 20
-
-            echo "=== Container Status ==="
-            docker compose -f compose.prod.yaml ps
-
-            echo "=== Container Logs ==="
-            docker compose -f compose.prod.yaml logs --tail=30
-
-            echo "=== Testing nginx ==="
-            docker exec vue-chat-app nginx -t || echo "Nginx config test failed"
+            docker compose -f compose.prod.yaml up -d           
 
             rm -f .env
