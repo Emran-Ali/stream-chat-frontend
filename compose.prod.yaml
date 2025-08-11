@@ -7,6 +7,11 @@ services:
     restart: unless-stopped
     ports:
       - '80:80'  # Keep this as you want
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
